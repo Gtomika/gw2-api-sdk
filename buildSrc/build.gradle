@@ -1,0 +1,13 @@
+plugins {
+    id 'groovy-gradle-plugin'
+}
+
+//common plugins must be listed here
+
+repositories {
+    gradlePluginPortal()
+}
+
+dependencies {
+    implementation 'io.freefair.gradle:lombok-plugin:6.6.3'
+}

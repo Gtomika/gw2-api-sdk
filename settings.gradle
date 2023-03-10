@@ -1,0 +1,6 @@
+rootProject.name = 'Gw2ApiSdk'
+
+include 'core'
+include 'public-achievements'
+include 'account'
+
