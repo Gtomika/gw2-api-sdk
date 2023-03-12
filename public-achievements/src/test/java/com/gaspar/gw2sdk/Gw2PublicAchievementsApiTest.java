@@ -5,10 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 @Slf4j
 class Gw2PublicAchievementsApiTest {
 
@@ -25,22 +21,21 @@ class Gw2PublicAchievementsApiTest {
 
     @Test
     public void shouldGetList() {
-        achievementsApi.getAchievementIds(new Gw2ApiCallbacks<>() {
-            @Override
-            public void onSuccess(List<Long> data) {
-                log.info("GW2 has {} whitelisted achievements", data.size());
-            }
+        achievementsApi.getAchievementIds()
+                .onSuccess(idList -> log.info("GW2 has '{}' achievements!", idList.size()))
+                .onError(errorData -> log.error("GW2 API error: {}", errorData))
+                .onNoAnswer(() -> log.error("GW2 API failed to answer"))
+                .join();
+    }
 
-            @Override
-            public void onError(Gw2ApiErrorData errorData) {
-                log.error("GW2 API has failed to answer: {}", errorData);
-            }
-
-            @Override
-            public void onNoAnswer() {
-                log.error("The GW2 API has not answered");
-            }
-        }).join();
+    @Test
+    public void shouldCancel() {
+        var promise = achievementsApi.getAchievementIds()
+                .onSuccess(idList -> log.info("GW2 has '{}' achievements!", idList.size()))
+                .onError(errorData -> log.error("GW2 API error: {}", errorData))
+                .onNoAnswer(() -> log.error("GW2 API failed to answer"));
+        promise.cancel();
+        promise.join();
     }
 
 }

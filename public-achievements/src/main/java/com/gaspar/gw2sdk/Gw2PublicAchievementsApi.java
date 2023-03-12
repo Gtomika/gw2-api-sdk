@@ -45,10 +45,10 @@ public class Gw2PublicAchievementsApi {
             apiKeyNeeded = false,
             requiredPermissions = {}
     )
-    public Gw2ApiPromise<List<Long>> getAchievementIds(Gw2ApiCallbacks<List<Long>> callbacks) {
+    public Gw2ApiPromise<List<Long>> getAchievementIds() {
         var future = gw2HttpClient.fetchDataAsync(PUBLIC_ACHIEVEMENTS_PATH);
         var reference = new TypeReference<List<Long>>() {};
-        return new Gw2ApiPromise<>(future, reference, callbacks);
+        return new Gw2ApiPromise<>(future, reference);
     }
 
 }
