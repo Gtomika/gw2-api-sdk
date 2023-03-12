@@ -21,6 +21,7 @@ import java.util.concurrent.TimeoutException;
  * This client is responsible for making HTTP calls to the GW2 API. The requests are delegated to an
  * {@link UnderlyingHttpClient}.
  */
+//TODO think about retry policy
 @Slf4j
 public class Gw2HttpClient {
 
@@ -62,7 +63,7 @@ public class Gw2HttpClient {
     ) {
         this.underlyingHttpClient = withDefaultValue(underlyingHttpClient, new Java11HttpClient());
         this.apiKey = Optional.ofNullable(apiKey);
-        this.timeoutSeconds = withDefaultValue(validateTimeoutSeconds(timeoutSeconds), 5);
+        this.timeoutSeconds = validateTimeoutSeconds(withDefaultValue(timeoutSeconds, 5));
         this.schemaVersion = "2023-03-09T00:00:00Z"; //TODO extract this config somehow
     }
 
@@ -81,8 +82,8 @@ public class Gw2HttpClient {
             );
             return underlyingHttpClient.httpGetAsync(request) //must not throw exceptions: will only return with futures
                     .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
-                    .exceptionallyAsync(this::exceptionHandlerStage) //convert exceptional future to null
-                    .thenApplyAsync(Optional::ofNullable); //convert value or null to Optional
+                    .exceptionally(this::exceptionHandlerStage) //convert exceptional future to null
+                    .thenApply(Optional::ofNullable); //convert value or null to Optional
         } catch (URISyntaxException e) {
             log.error("Incorrect path provided and an URI cannot be made: {}{}", API_BASE_URL, path);
             throw new Gw2HttpException(e);

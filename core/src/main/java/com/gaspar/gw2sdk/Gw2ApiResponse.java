@@ -3,7 +3,9 @@ package com.gaspar.gw2sdk;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.gaspar.gw2sdk.http.Gw2HttpResponse;
 import com.gaspar.gw2sdk.serialization.Gw2SdkSerialization;
+import com.gaspar.gw2sdk.serialization.Gw2SdkSerializationException;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nonnull;
 import java.util.Optional;
@@ -24,6 +26,7 @@ import java.util.Optional;
  * </ol>
  * @param <T> Type of the successful response.
  */
+@Slf4j
 public class Gw2ApiResponse<T> {
 
     private Optional<T> data;
@@ -51,30 +54,36 @@ public class Gw2ApiResponse<T> {
     private void initializeWhenResponse(@Nonnull Gw2HttpResponse rawResponse, @Nonnull TypeReference<T> dataType) {
         successful = rawResponse.statusCode() == 200;
         if(successful) {
-            data = Optional.of(serializeData(rawResponse.content(), dataType));
+            log.debug("Response is considered successful, starting deserializing data into '{}'", dataType.getType().getTypeName());
+            T t = deserializeData(rawResponse.content(), dataType);
+            data = Optional.of(t);
         } else {
             data = Optional.empty();
         }
 
         apiError = !successful;
         if(apiError) {
-            errorData = Optional.of(serializeErrorData(rawResponse));
+            errorData = Optional.of(deserializeErrorData(rawResponse));
+            log.debug("Response is considered an error, created error data {}", errorData.get());
         } else {
             errorData = Optional.empty();
         }
+
+        noAnswer = false;
     }
 
     private void initializeWhenNoResponse() {
+        log.debug("Response has not arrived at all");
         noAnswer = true;
         data = Optional.empty();
         errorData = Optional.empty();
     }
 
-    private T serializeData(String content, TypeReference<T> dataType) {
+    private T deserializeData(String content, TypeReference<T> dataType) {
         return Gw2SdkSerialization.deserializeJson(content, dataType);
     }
 
-    private Gw2ApiErrorData serializeErrorData(Gw2HttpResponse rawResponse) {
+    private Gw2ApiErrorData deserializeErrorData(Gw2HttpResponse rawResponse) {
         return new Gw2ApiErrorData(rawResponse.content(), rawResponse.statusCode());
     }
 

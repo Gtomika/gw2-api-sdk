@@ -28,7 +28,6 @@ public class Gw2PublicAchievementsApi {
 
     private final Gw2HttpClient gw2HttpClient;
 
-    //TODO get achievement IDs
     //TODO get a single achievement by id
     //TODO get a list of achievements by ID list
 
@@ -39,17 +38,17 @@ public class Gw2PublicAchievementsApi {
     }
 
     /**
-     * Get the list of all whitelisted achievement IDs.
+     * Query the list of all whitelisted achievement IDs.
      */
     @Gw2Api(
             path = PUBLIC_ACHIEVEMENTS_PATH,
             apiKeyNeeded = false,
             requiredPermissions = {}
     )
-    public CompletableFuture<Gw2ApiResponse<List<Long>>> getAchievementIds() {
-        return gw2HttpClient.fetchDataAsync(PUBLIC_ACHIEVEMENTS_PATH)
-                .thenApplyAsync(rawResponse -> new Gw2ApiResponse<>(rawResponse, new TypeReference<>() {
-                }));
+    public Gw2ApiPromise<List<Long>> getAchievementIds(Gw2ApiCallbacks<List<Long>> callbacks) {
+        var future = gw2HttpClient.fetchDataAsync(PUBLIC_ACHIEVEMENTS_PATH);
+        var reference = new TypeReference<List<Long>>() {};
+        return new Gw2ApiPromise<>(future, reference, callbacks);
     }
 
 }
