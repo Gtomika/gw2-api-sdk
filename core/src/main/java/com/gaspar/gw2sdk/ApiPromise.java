@@ -1,7 +1,7 @@
 package com.gaspar.gw2sdk;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.gaspar.gw2sdk.http.Gw2HttpResponse;
+import com.gaspar.gw2sdk.http.HttpResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
@@ -26,16 +26,16 @@ import java.util.function.Consumer;
  * @param <T>
  */
 @Slf4j
-public class Gw2ApiPromise<T> {
+public class ApiPromise<T> {
 
     private Consumer<T> onSuccess;
-    private Consumer<Gw2ApiErrorData> onError;
+    private Consumer<ApiErrorData> onError;
     private Runnable onNoAnswer;
 
-    private final CompletableFuture<Optional<Gw2HttpResponse>> rawResponse;
+    private final CompletableFuture<Optional<HttpResponse>> rawResponse;
 
-    protected Gw2ApiPromise(
-            CompletableFuture<Optional<Gw2HttpResponse>> rawResponse,
+    protected ApiPromise(
+            CompletableFuture<Optional<HttpResponse>> rawResponse,
             TypeReference<T> dataType
     ) {
         this.rawResponse = rawResponse;
@@ -51,7 +51,7 @@ public class Gw2ApiPromise<T> {
 
     private void initializeRequestFinishedListener(TypeReference<T> dataType) {
         rawResponse.thenAccept(gw2HttpResponse -> {
-            Gw2ApiResponse<T> apiResponse = new Gw2ApiResponse<>(gw2HttpResponse, dataType);
+            ApiResponse<T> apiResponse = new ApiResponse<>(gw2HttpResponse, dataType);
             if(apiResponse.isSuccessful()) {
                 onSuccess.accept(apiResponse.data());
             } else if(apiResponse.isApiError()) {
@@ -66,16 +66,16 @@ public class Gw2ApiPromise<T> {
      * Set the callback to be invoked if the operation is successful. The SDK will pass the deserialized
      * data to your callback.
      */
-    public Gw2ApiPromise<T> onSuccess(Consumer<T> onSuccess) {
+    public ApiPromise<T> onSuccess(Consumer<T> onSuccess) {
         this.onSuccess = onSuccess;
         return this;
     }
 
     /**
      * Set the callback to be invoked if the operation resulted in an API error. The SDK will pass the
-     * {@link Gw2ApiErrorData} to your callback.
+     * {@link ApiErrorData} to your callback.
      */
-    public Gw2ApiPromise<T> onError(Consumer<Gw2ApiErrorData> onError) {
+    public ApiPromise<T> onError(Consumer<ApiErrorData> onError) {
         this.onError = onError;
         return this;
     }
@@ -84,7 +84,7 @@ public class Gw2ApiPromise<T> {
      * Set the callback to be invoked if the operation received no answer at all from the API. It can be because
      * of a timeout, for example.
      */
-    public Gw2ApiPromise<T> onNoAnswer(Runnable onNoAnswer) {
+    public ApiPromise<T> onNoAnswer(Runnable onNoAnswer) {
         this.onNoAnswer = onNoAnswer;
         return this;
     }
@@ -105,7 +105,8 @@ public class Gw2ApiPromise<T> {
     }
 
     /**
-     * Block the current thread until the operation finishes.
+     * Block the current thread until the operation finishes. Note that any exception triggered by the
+     * callbacks, or cancellation will be rethrown by this method.
      */
     public void join() {
         rawResponse.join();

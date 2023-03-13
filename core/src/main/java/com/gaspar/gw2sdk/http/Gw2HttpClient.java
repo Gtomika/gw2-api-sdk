@@ -1,7 +1,8 @@
 package com.gaspar.gw2sdk.http;
 
-import com.gaspar.gw2sdk.auth.Gw2ApiKey;
-import com.gaspar.gw2sdk.Gw2InvalidParamException;
+import com.gaspar.gw2sdk.annotations.SdkInternal;
+import com.gaspar.gw2sdk.auth.ApiKey;
+import com.gaspar.gw2sdk.InvalidParamException;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeoutException;
  */
 //TODO think about retry policy
 @Slf4j
+@SdkInternal
 public class Gw2HttpClient {
 
     /**
@@ -41,7 +43,7 @@ public class Gw2HttpClient {
      * API key to be attached to the requests: in case it is not provided, unauthenticated requests will be sent.
      */
     @Getter
-    private Optional<Gw2ApiKey> apiKey;
+    private Optional<ApiKey> apiKey;
 
     /**
      * Schema version used in the API calls. Must be a valid ISO 8601 date time, or 'latest'.
@@ -58,7 +60,7 @@ public class Gw2HttpClient {
     @Builder
     private Gw2HttpClient(
             UnderlyingHttpClient<?> underlyingHttpClient,
-            Gw2ApiKey apiKey,
+            ApiKey apiKey,
             Integer timeoutSeconds
     ) {
         this.underlyingHttpClient = withDefaultValue(underlyingHttpClient, new Java11HttpClient());
@@ -71,13 +73,13 @@ public class Gw2HttpClient {
      * Get data from the GW2 API asynchronously. DO NOT use this method directly!
      * @param path API path which must not include the base URL and must begin with '/'. For example {@code /v2/account}.
      * @return A future with the response, or empty optional in case the response could not be obtained.
-     * @throws Gw2HttpException If the client cannot make the request at all because of invalid path provided.
+     * @throws HttpException If the client cannot make the request at all because of invalid path provided.
      */
-    public CompletableFuture<Optional<Gw2HttpResponse>> fetchDataAsync(String path) throws Gw2HttpException {
+    public CompletableFuture<Optional<HttpResponse>> fetchDataAsync(String path) throws HttpException {
         try {
-            Gw2HttpRequest request = new Gw2HttpRequest(
+            HttpRequest request = new HttpRequest(
                     new URI(API_BASE_URL + path),
-                    apiKey.map(Gw2ApiKey::getToken),
+                    apiKey.map(ApiKey::getToken),
                     schemaVersion
             );
             return underlyingHttpClient.httpGetAsync(request) //must not throw exceptions: will only return with futures
@@ -86,11 +88,11 @@ public class Gw2HttpClient {
                     .thenApply(Optional::ofNullable); //convert value or null to Optional
         } catch (URISyntaxException e) {
             log.error("Incorrect path provided and an URI cannot be made: {}{}", API_BASE_URL, path);
-            throw new Gw2HttpException(e);
+            throw new HttpException(e);
         }
     }
 
-    private Gw2HttpResponse exceptionHandlerStage(Throwable t) {
+    private HttpResponse exceptionHandlerStage(Throwable t) {
         if(t instanceof TimeoutException) {
             log.warn("The HTTP request timed out after {} seconds, returning null...", timeoutSeconds);
             return null;
@@ -101,7 +103,7 @@ public class Gw2HttpClient {
 
     private int validateTimeoutSeconds(int timeoutSeconds) {
         if(timeoutSeconds <= 0) {
-            throw new Gw2InvalidParamException("timeoutSeconds", timeoutSeconds, List.of("Must be positive"));
+            throw new InvalidParamException("timeoutSeconds", timeoutSeconds, List.of("Must be positive"));
         }
         return timeoutSeconds;
     }
@@ -110,7 +112,7 @@ public class Gw2HttpClient {
         return value != null ? value : defaultValue;
     }
 
-    public void setApiKey(Gw2ApiKey apiKey) {
+    public void setApiKey(ApiKey apiKey) {
         this.apiKey = Optional.ofNullable(apiKey);
     }
 

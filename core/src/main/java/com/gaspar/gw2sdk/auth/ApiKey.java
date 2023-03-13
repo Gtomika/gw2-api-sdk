@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
  */
 @Slf4j
 @Builder
-public class Gw2ApiKey {
+public class ApiKey {
 
     private static final Pattern GW2_API_KEY_PATTERN = Pattern.compile(
         "[A-F0-9]{8}-([A-F0-9]{4}-){3}[A-F0-9]{20}-([A-F0-9]{4}-){3}[A-F0-9]{12}"
@@ -30,36 +30,36 @@ public class Gw2ApiKey {
      * <li>
      *     <ul>
      *         If provided, the SDK can perform permission checks before making HTTP calls. The permissions
-     *         must contain at least the {@link Gw2Permission#MINIMAL_PERMISSIONS}.
+     *         must contain at least the {@link ApiPermission#MINIMAL_PERMISSIONS}.
      *     </ul>
      *     <ul>
-     *         If not provided, it will default to {@link Gw2Permission#ALL_PERMISSIONS}, but this can be an
+     *         If not provided, it will default to {@link ApiPermission#ALL_PERMISSIONS}, but this can be an
      *         issue if the API key really does not have all permissions.
      *     </ul>
      * </li>
      */
     @Getter
-    private final Set<Gw2Permission> permissions;
+    private final Set<ApiPermission> permissions;
 
-    private Gw2ApiKey(String token, Set<Gw2Permission> permissions) {
+    private ApiKey(String token, Set<ApiPermission> permissions) {
         this.token = validateToken(token);
-        this.permissions = permissions != null ? validatePermissions(permissions) : Gw2Permission.ALL_PERMISSIONS;
+        this.permissions = permissions != null ? validatePermissions(permissions) : ApiPermission.ALL_PERMISSIONS;
         log.debug("Created API key. Token: {}, Permissions: {}", this.token, this.permissions);
     }
 
-    private String validateToken(String token) throws Gw2ApiKeyInvalidException {
+    private String validateToken(String token) throws ApiKeyInvalidException {
         if(StringUtils.isBlank(token)) {
-            throw new Gw2ApiKeyInvalidException(token, "The token cannot be null or empty");
+            throw new ApiKeyInvalidException(token, "The token cannot be null or empty");
         }
         if(!GW2_API_KEY_PATTERN.matcher(token).matches()) {
-            throw new Gw2ApiKeyInvalidException(token, "The token does not match the expected format");
+            throw new ApiKeyInvalidException(token, "The token does not match the expected format");
         }
         return token;
     }
 
-    private Set<Gw2Permission> validatePermissions(Set<Gw2Permission> permissions) throws Gw2ApiKeyInvalidException {
-        if(!permissions.containsAll(Gw2Permission.MINIMAL_PERMISSIONS)) {
-            throw new Gw2ApiKeyInvalidException("The permissions set does not contain at least the minimal permissions." +
+    private Set<ApiPermission> validatePermissions(Set<ApiPermission> permissions) throws ApiKeyInvalidException {
+        if(!permissions.containsAll(ApiPermission.MINIMAL_PERMISSIONS)) {
+            throw new ApiKeyInvalidException("The permissions set does not contain at least the minimal permissions." +
                     " See 'Gw2Permission.MINIMAL_PERMISSIONS'.");
         }
         return permissions;

@@ -4,10 +4,12 @@ import com.gaspar.gw2sdk.Constants;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * HTTP client implementation using the built-in JDK HTTP client. This is the default
+ * {@link UnderlyingHttpClient} used by the SDK.
+ */
 @Slf4j
 public class Java11HttpClient implements UnderlyingHttpClient<HttpClient> {
 
@@ -19,11 +21,11 @@ public class Java11HttpClient implements UnderlyingHttpClient<HttpClient> {
     }
 
     @Override
-    public CompletableFuture<Gw2HttpResponse> httpGetAsync(Gw2HttpRequest gw2HttpRequest) {
+    public CompletableFuture<HttpResponse> httpGetAsync(HttpRequest httpRequest) {
         try {
-            HttpRequest request = convertGw2Request(gw2HttpRequest);
+            java.net.http.HttpRequest request = convertGw2Request(httpRequest);
             log.debug("Making async HTTP GET request to '{}'", request.uri().toString());
-            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            return httpClient.sendAsync(request, java.net.http.HttpResponse.BodyHandlers.ofString())
                     .thenApply(this::convertGw2Response);
         } catch (Exception e) {
             log.warn("Failed to make HTTP request", e);
@@ -41,24 +43,24 @@ public class Java11HttpClient implements UnderlyingHttpClient<HttpClient> {
         this.httpClient = httpClient;
     }
 
-    private HttpRequest convertGw2Request(Gw2HttpRequest gw2HttpRequest) {
-        var builder = HttpRequest.newBuilder()
+    private java.net.http.HttpRequest convertGw2Request(HttpRequest httpRequest) {
+        var builder = java.net.http.HttpRequest.newBuilder()
                 .GET()
-                .uri(gw2HttpRequest.url());
+                .uri(httpRequest.url());
 
         //headers
-        gw2HttpRequest.apiKey().ifPresent(apiKey -> {
+        httpRequest.apiKey().ifPresent(apiKey -> {
             log.debug("Setting '{}' header for request", Constants.AUTHORIZATION_HEADER);
             builder.setHeader(Constants.AUTHORIZATION_HEADER, "Bearer " + apiKey);
         });
 
-        log.debug("Setting '{}' header for request with value '{}'", Constants.SCHEMA_VERSION_HEADER, gw2HttpRequest.schemaVersion());
-        builder.header(Constants.SCHEMA_VERSION_HEADER, gw2HttpRequest.schemaVersion());
+        log.debug("Setting '{}' header for request with value '{}'", Constants.SCHEMA_VERSION_HEADER, httpRequest.schemaVersion());
+        builder.header(Constants.SCHEMA_VERSION_HEADER, httpRequest.schemaVersion());
 
         return builder.build();
     }
 
-    private Gw2HttpResponse convertGw2Response(HttpResponse<String> response) {
-        return new Gw2HttpResponse(response.body(), response.statusCode());
+    private HttpResponse convertGw2Response(java.net.http.HttpResponse<String> response) {
+        return new HttpResponse(response.body(), response.statusCode());
     }
 }

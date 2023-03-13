@@ -1,9 +1,9 @@
 package com.gaspar.gw2sdk;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.gaspar.gw2sdk.http.Gw2HttpResponse;
-import com.gaspar.gw2sdk.serialization.Gw2SdkSerialization;
-import com.gaspar.gw2sdk.serialization.Gw2SdkSerializationException;
+import com.gaspar.gw2sdk.annotations.SdkInternal;
+import com.gaspar.gw2sdk.http.HttpResponse;
+import com.gaspar.gw2sdk.serialization.SdkSerialization;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,10 +27,11 @@ import java.util.Optional;
  * @param <T> Type of the successful response.
  */
 @Slf4j
-public class Gw2ApiResponse<T> {
+@SdkInternal
+public class ApiResponse<T> {
 
     private Optional<T> data;
-    private Optional<Gw2ApiErrorData> errorData;
+    private Optional<ApiErrorData> errorData;
 
     @Getter
     private boolean successful = false;
@@ -41,17 +42,14 @@ public class Gw2ApiResponse<T> {
     @Getter
     private boolean noAnswer = false;
 
-    /**
-     * Build a new API response. You should not do this manually, leave it to the SDK.
-     */
-    public Gw2ApiResponse(@Nonnull Optional<Gw2HttpResponse> rawResponseOpt, @Nonnull TypeReference<T> dataType) {
+    protected ApiResponse(@Nonnull Optional<HttpResponse> rawResponseOpt, @Nonnull TypeReference<T> dataType) {
         rawResponseOpt.ifPresentOrElse(
                 rawResponse -> initializeWhenResponse(rawResponse, dataType),
                 this::initializeWhenNoResponse
         );
     }
 
-    private void initializeWhenResponse(@Nonnull Gw2HttpResponse rawResponse, @Nonnull TypeReference<T> dataType) {
+    private void initializeWhenResponse(@Nonnull HttpResponse rawResponse, @Nonnull TypeReference<T> dataType) {
         successful = rawResponse.statusCode() == 200;
         if(successful) {
             log.debug("Response is considered successful, starting deserializing data into '{}'", dataType.getType().getTypeName());
@@ -80,41 +78,29 @@ public class Gw2ApiResponse<T> {
     }
 
     private T deserializeData(String content, TypeReference<T> dataType) {
-        return Gw2SdkSerialization.deserializeJson(content, dataType);
+        return SdkSerialization.deserializeJson(content, dataType);
     }
 
-    private Gw2ApiErrorData deserializeErrorData(Gw2HttpResponse rawResponse) {
-        return new Gw2ApiErrorData(rawResponse.content(), rawResponse.statusCode());
+    private ApiErrorData deserializeErrorData(HttpResponse rawResponse) {
+        return new ApiErrorData(rawResponse.content(), rawResponse.statusCode());
     }
 
     /**
      * Get the serialized data returned from the API. <b>Only call this after you made sure that the response</b>
-     * {@link #isSuccessful()}.
-     * @throws Gw2ApiResponseException If the response is not successful, and nothing can be returned.
+     * {@link #isSuccessful()}. Otherwise, exception is thrown to warn about misusing this method.
      */
-    public T data() throws Gw2ApiResponseException {
-        return data.orElseThrow(() -> {
-            if(apiError) {
-                return new Gw2ApiResponseException("Unable to get data because the API has answered with an error");
-            } else { //no answer
-                return new Gw2ApiResponseException("Unable to get data because the API has not responded");
-            }
-        });
+    @SdkInternal
+    public T data() {
+        return data.orElseThrow(() -> new SdkException("SDK error: calling 'data' when response is not successful"));
     }
 
     /**
      * Get the serialized error data from the API. <b>Only call this after you made sure that the response</b>
-     * {@link #isApiError()}.
-     * @throws Gw2ApiResponseException If the response was not an error, and nothing can be returned.
+     * {@link #isApiError()}. Otherwise, exception is thrown to warn about misusing this method.
      */
-    public Gw2ApiErrorData errorData() throws Gw2ApiResponseException {
-        return errorData.orElseThrow(() -> {
-            if(successful) {
-                return new Gw2ApiResponseException("Unable to get error data because the API responded successfully, there are no errors");
-            } else { //no answer
-                return new Gw2ApiResponseException("Unable to get error data because the API has not responded");
-            }
-        });
+    @SdkInternal
+    public ApiErrorData errorData() {
+        return errorData.orElseThrow(() -> new SdkException("SDK error: calling 'errorData' when response is not error"));
     }
 
     /**

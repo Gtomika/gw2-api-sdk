@@ -15,6 +15,9 @@ test {
 }
 
 dependencies {
+    implementation project(':core')
+    implementation project(':test-core')
+
     implementation 'org.apache.commons:commons-lang3:3.5'
     implementation 'org.slf4j:slf4j-api:2.0.6'
     implementation 'com.google.code.findbugs:jsr305:3.0.2'

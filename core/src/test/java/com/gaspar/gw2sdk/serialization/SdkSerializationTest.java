@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class Gw2SdkSerializationTest {
+public class SdkSerializationTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -27,14 +27,14 @@ public class Gw2SdkSerializationTest {
         TestData testData = new TestData("OK", 2);
         String serialized = mapper.writeValueAsString(testData);
 
-        TestData deserializedData = Gw2SdkSerialization.deserializeJson(serialized, new TypeReference<>() {});
+        TestData deserializedData = SdkSerialization.deserializeJson(serialized, new TypeReference<>() {});
         assertEquals(testData, deserializedData);
     }
 
     @Test
     public void shouldNotSerializeInvalidJson() {
-        assertThrows(Gw2SdkSerializationException.class, () -> {
-            Gw2SdkSerialization.deserializeJson("invalid", new TypeReference<>() {});
+        assertThrows(SdkSerializationException.class, () -> {
+            SdkSerialization.deserializeJson("invalid", new TypeReference<>() {});
         });
     }
 

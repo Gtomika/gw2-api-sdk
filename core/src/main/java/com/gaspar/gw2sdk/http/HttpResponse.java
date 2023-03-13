@@ -1,9 +1,12 @@
 package com.gaspar.gw2sdk.http;
 
+import com.gaspar.gw2sdk.annotations.SdkInternal;
+
 /**
  * Raw response from the API.
  */
-public record Gw2HttpResponse(
+@SdkInternal
+public record HttpResponse(
         String content,
         int statusCode
 ) {
