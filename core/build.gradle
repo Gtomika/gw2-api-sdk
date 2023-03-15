@@ -1,3 +1,7 @@
 plugins {
     id 'multimodule-config'
 }
+
+dependencies {
+    testImplementation project(':test-core')
+}

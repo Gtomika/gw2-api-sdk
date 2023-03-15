@@ -1,9 +1,8 @@
 package com.gaspar.gw2sdk;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.gaspar.gw2sdk.annotations.SdkInternal;
 import com.gaspar.gw2sdk.http.HttpResponse;
-import com.gaspar.gw2sdk.serialization.SdkSerialization;
+import com.gaspar.gw2sdk.serialization.SdkDeserialization;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,7 +26,6 @@ import java.util.Optional;
  * @param <T> Type of the successful response.
  */
 @Slf4j
-@SdkInternal
 public class ApiResponse<T> {
 
     private Optional<T> data;
@@ -78,7 +76,7 @@ public class ApiResponse<T> {
     }
 
     private T deserializeData(String content, TypeReference<T> dataType) {
-        return SdkSerialization.deserializeJson(content, dataType);
+        return SdkDeserialization.deserializeData(content, dataType);
     }
 
     private ApiErrorData deserializeErrorData(HttpResponse rawResponse) {
@@ -86,28 +84,26 @@ public class ApiResponse<T> {
     }
 
     /**
-     * Get the serialized data returned from the API. <b>Only call this after you made sure that the response</b>
-     * {@link #isSuccessful()}. Otherwise, exception is thrown to warn about misusing this method.
+     * Get the serialized data returned from the API. If the response {@link #isSuccessful()}, data is returned,
+     * otherwise an empty optional is returned.
      */
-    @SdkInternal
-    public T data() {
-        return data.orElseThrow(() -> new SdkException("SDK error: calling 'data' when response is not successful"));
+    public Optional<T> data() {
+        return data;
     }
 
     /**
-     * Get the serialized error data from the API. <b>Only call this after you made sure that the response</b>
-     * {@link #isApiError()}. Otherwise, exception is thrown to warn about misusing this method.
+     * Get the serialized error data from the API. If the response {@link #isApiError()}, error data is returned,
+     * otherwise an empty optional is returned.
      */
-    @SdkInternal
-    public ApiErrorData errorData() {
-        return errorData.orElseThrow(() -> new SdkException("SDK error: calling 'errorData' when response is not error"));
+    public Optional<ApiErrorData> errorData() {
+        return errorData;
     }
 
     /**
      * Convenience method of checking if the API has returned any response at all. The
      * response can be successful or error.
      */
-    public boolean isCompleted() {
+    public boolean isApiResponded() {
         return successful || apiError;
     }
 }

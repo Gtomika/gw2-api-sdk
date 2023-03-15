@@ -5,7 +5,7 @@ import com.gaspar.gw2sdk.http.Gw2HttpClient;
 import org.junit.jupiter.api.BeforeEach;
 
 /**
- * All classes unit testing API wrappers should be subclasses from this one.
+ * All classes unit testing API components should be subclasses from this one.
  * Provides mock setup for HTTP calls.
  */
 public class ApiBaseTest {

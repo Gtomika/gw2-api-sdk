@@ -15,10 +15,9 @@ import java.lang.annotation.Target;
 public @interface Gw2ApiOperation {
 
     /**
-     * Path to the API, not including the base URL. Must begin with '/'. If it's the same as the container
-     * {@link Gw2ApiComponent#basePath()}, then it should be left empty.
+     * Path to the API, not including the base URL. Must begin with '/'.
      */
-    String path() default "";
+    String path();
 
     /**
      * If an API key is required to access this API. If it's the same as the container {@link Gw2ApiComponent#apiKeyNeeded()},

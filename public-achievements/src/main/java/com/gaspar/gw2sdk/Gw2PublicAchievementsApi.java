@@ -36,11 +36,10 @@ public class Gw2PublicAchievementsApi extends ApiComponent {
     /**
      * Query the list of all whitelisted achievement IDs.
      */
-    @Gw2ApiOperation
+    @Gw2ApiOperation(path = "/v2/achievements")
     public ApiPromise<List<Long>> getAchievementIds() {
         var future = gw2HttpClient.fetchDataAsync(PUBLIC_ACHIEVEMENTS_PATH);
-        var reference = new TypeReference<List<Long>>() {};
-        return new ApiPromise<>(future, reference);
+        return ApiPromise.of(future, new TypeReference<>() {});
     }
 
     //TODO get a single achievement by id

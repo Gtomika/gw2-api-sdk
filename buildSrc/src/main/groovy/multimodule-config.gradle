@@ -15,9 +15,6 @@ test {
 }
 
 dependencies {
-    implementation project(':core')
-    implementation project(':test-core')
-
     implementation 'org.apache.commons:commons-lang3:3.5'
     implementation 'org.slf4j:slf4j-api:2.0.6'
     implementation 'com.google.code.findbugs:jsr305:3.0.2'
@@ -25,7 +22,6 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-core:2.14.2'
     implementation 'com.fasterxml.jackson.core:jackson-annotations:2.14.2'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.2'
-
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.7.2'

@@ -33,14 +33,19 @@ public class ApiPromise<T> {
     private Runnable onNoAnswer;
 
     private final CompletableFuture<Optional<HttpResponse>> rawResponse;
+    private ApiResponse<T> apiResponse;
 
-    protected ApiPromise(
+    private ApiPromise(
             CompletableFuture<Optional<HttpResponse>> rawResponse,
             TypeReference<T> dataType
     ) {
         this.rawResponse = rawResponse;
         initializeDefaultCallbacks();
         initializeRequestFinishedListener(dataType);
+    }
+
+    public static <T> ApiPromise<T> of(CompletableFuture<Optional<HttpResponse>> rawResponse, TypeReference<T> dataType) {
+        return new ApiPromise<>(rawResponse, dataType);
     }
 
     private void initializeDefaultCallbacks() {
@@ -51,11 +56,11 @@ public class ApiPromise<T> {
 
     private void initializeRequestFinishedListener(TypeReference<T> dataType) {
         rawResponse.thenAccept(gw2HttpResponse -> {
-            ApiResponse<T> apiResponse = new ApiResponse<>(gw2HttpResponse, dataType);
+            apiResponse = new ApiResponse<>(gw2HttpResponse, dataType);
             if(apiResponse.isSuccessful()) {
-                onSuccess.accept(apiResponse.data());
+                onSuccess.accept(apiResponse.data().get());
             } else if(apiResponse.isApiError()) {
-                onError.accept(apiResponse.errorData());
+                onError.accept(apiResponse.errorData().get());
             } else {
                 onNoAnswer.run();
             }
@@ -87,6 +92,30 @@ public class ApiPromise<T> {
     public ApiPromise<T> onNoAnswer(Runnable onNoAnswer) {
         this.onNoAnswer = onNoAnswer;
         return this;
+    }
+
+    /**
+     * Get the response object: {@link ApiResponse}. If the request has not completed at the time of calling this
+     * method, an empty optional will be returned.
+     * <p>
+     * Using the callbacks to process the response is preferred. But in case of blocking the thread and waiting for
+     * the response, this method can be used:
+     * <pre>{@code
+     * ApiPromise<Achievement> promise = achievementsApi.findAchievementById(1235);
+     * promise.join(); //block
+     * ApiResponse<Achievement> achievementResponse = promise.getResponse().get();
+     *
+     * if(achievementResponse.isSuccessful()) {
+     *      Achievement a = achievementResponse.data();
+     *      //do something with achievement
+     * } else {
+     *     //do something with failed or missing response
+     * }
+     * }</pre>
+     * Due to the clumsiness of this approach, it is recommended to use the callbacks to process the response instead.
+     */
+    public Optional<ApiResponse<T>> getResponse() {
+        return Optional.ofNullable(apiResponse);
     }
 
     /**
