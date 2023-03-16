@@ -4,6 +4,7 @@ import com.gaspar.gw2sdk.http.HttpRequest;
 import com.gaspar.gw2sdk.http.HttpResponse;
 import com.gaspar.gw2sdk.http.UnderlyingHttpClient;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.CompletableFuture;
@@ -20,6 +21,10 @@ public class MockUnderlyingHttpClient implements UnderlyingHttpClient<Void> {
 
     @Getter
     private HttpResponse mockResponse;
+
+    @Getter
+    @Setter
+    private Long delayMillis;
 
     /**
      * Set a new mock response to be used by the fake client.
@@ -38,7 +43,18 @@ public class MockUnderlyingHttpClient implements UnderlyingHttpClient<Void> {
     @Override
     public CompletableFuture<HttpResponse> httpGetAsync(HttpRequest request) {
         log.debug("Mocking HTTP request to '{}'", request.url().toString());
-        return CompletableFuture.completedFuture(mockResponse);
+        final HttpResponse mockResponseCopy = new HttpResponse(mockResponse.content(), mockResponse.statusCode());
+        return CompletableFuture.supplyAsync(() -> {
+            if(delayMillis != null) {
+                log.debug("Waiting '{}' milliseconds before making mock request", delayMillis);
+                try {
+                    Thread.sleep(delayMillis);
+                } catch (InterruptedException e) {
+                    log.error("Failed to wait for mock request", e);
+                }
+            }
+            return mockResponseCopy;
+        });
     }
 
     //does nothing

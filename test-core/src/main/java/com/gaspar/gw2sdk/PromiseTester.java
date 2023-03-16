@@ -6,8 +6,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.function.Predicate;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Class to wrap an {@link ApiPromise} and provide test functionality to it,
@@ -51,10 +50,13 @@ public class PromiseTester<T> {
      * Assert that API response was an error: must only be called after operation has finished, which can
      * be forced with {@link #waitForCompletion()} for example.
      */
-    public PromiseTester<T> assertApiError() {
+    public PromiseTester<T> assertApiError(int statusCode) {
         assertTrue(promise.isDone());
         var response = promise.getResponse().orElseThrow(AssertionError::new);
         assertTrue(response.isApiError());
+
+        var errorData = response.errorData().orElseThrow(AssertionError::new);
+        assertEquals(statusCode, errorData.statusCode());
         return this;
     }
 

@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
@@ -28,12 +29,13 @@ import java.util.function.Consumer;
 @Slf4j
 public class ApiPromise<T> {
 
-    private Consumer<T> onSuccess;
-    private Consumer<ApiErrorData> onError;
-    private Runnable onNoAnswer;
+    private AtomicReference<Consumer<T>> onSuccess;
+    private AtomicReference<Consumer<ApiErrorData>> onError;
+    private AtomicReference<Runnable> onNoAnswer;
 
     private final CompletableFuture<Optional<HttpResponse>> rawResponse;
-    private ApiResponse<T> apiResponse;
+
+    private AtomicReference<ApiResponse<T>> apiResponse;
 
     private ApiPromise(
             CompletableFuture<Optional<HttpResponse>> rawResponse,
@@ -49,20 +51,20 @@ public class ApiPromise<T> {
     }
 
     private void initializeDefaultCallbacks() {
-        onSuccess = data -> log.warn("Successfully obtained data, but no 'onSuccess' callback is set. Ignoring result...");
-        onError = errorData -> log.warn("GW2 API responded with error, but no 'onError' callback is set. Ignoring error...");
-        onNoAnswer = () -> log.warn("GW2 API failed to respond, but no 'onNoAnswer' callback is set. Ignoring...");
+        onSuccess = new AtomicReference<>(data -> log.warn("Successfully obtained data, but no 'onSuccess' callback is set. Ignoring result..."));
+        onError = new AtomicReference<>(errorData -> log.warn("GW2 API responded with error, but no 'onError' callback is set. Ignoring error..."));
+        onNoAnswer = new AtomicReference<>(() -> log.warn("GW2 API failed to respond, but no 'onNoAnswer' callback is set. Ignoring..."));
     }
 
     private void initializeRequestFinishedListener(TypeReference<T> dataType) {
         rawResponse.thenAccept(gw2HttpResponse -> {
-            apiResponse = new ApiResponse<>(gw2HttpResponse, dataType);
-            if(apiResponse.isSuccessful()) {
-                onSuccess.accept(apiResponse.data().get());
-            } else if(apiResponse.isApiError()) {
-                onError.accept(apiResponse.errorData().get());
+            apiResponse = new AtomicReference<>(new ApiResponse<>(gw2HttpResponse, dataType));
+            if(apiResponse.get().isSuccessful()) {
+                onSuccess.get().accept(apiResponse.get().data().get());
+            } else if(apiResponse.get().isApiError()) {
+                onError.get().accept(apiResponse.get().errorData().get());
             } else {
-                onNoAnswer.run();
+                onNoAnswer.get().run();
             }
         });
     }
@@ -71,8 +73,8 @@ public class ApiPromise<T> {
      * Set the callback to be invoked if the operation is successful. The SDK will pass the deserialized
      * data to your callback.
      */
-    public ApiPromise<T> onSuccess(Consumer<T> onSuccess) {
-        this.onSuccess = onSuccess;
+    public synchronized ApiPromise<T> onSuccess(Consumer<T> onSuccess) {
+        this.onSuccess.set(onSuccess);
         return this;
     }
 
@@ -80,8 +82,8 @@ public class ApiPromise<T> {
      * Set the callback to be invoked if the operation resulted in an API error. The SDK will pass the
      * {@link ApiErrorData} to your callback.
      */
-    public ApiPromise<T> onError(Consumer<ApiErrorData> onError) {
-        this.onError = onError;
+    public synchronized ApiPromise<T> onError(Consumer<ApiErrorData> onError) {
+        this.onError.set(onError);
         return this;
     }
 
@@ -89,8 +91,8 @@ public class ApiPromise<T> {
      * Set the callback to be invoked if the operation received no answer at all from the API. It can be because
      * of a timeout, for example.
      */
-    public ApiPromise<T> onNoAnswer(Runnable onNoAnswer) {
-        this.onNoAnswer = onNoAnswer;
+    public synchronized ApiPromise<T> onNoAnswer(Runnable onNoAnswer) {
+        this.onNoAnswer.set(onNoAnswer);
         return this;
     }
 
@@ -114,30 +116,23 @@ public class ApiPromise<T> {
      * }</pre>
      * Due to the clumsiness of this approach, it is recommended to use the callbacks to process the response instead.
      */
-    public Optional<ApiResponse<T>> getResponse() {
-        return Optional.ofNullable(apiResponse);
+    public synchronized Optional<ApiResponse<T>> getResponse() {
+        return Optional.ofNullable(apiResponse)
+                .map(AtomicReference::get);
     }
 
     /**
      * Used to check if the operation has finished. It can finish on success, on error, or if no response arrives.
      */
-    public boolean isDone() {
+    public synchronized boolean isDone() {
         return rawResponse.isDone();
-    }
-
-    /**
-     * Cancel the operation manually. Note that in this case, none of the available callback will be invoked, and
-     * you will face a {@link java.util.concurrent.CancellationException} when calling {@link #join()}.
-     */
-    public void cancel() {
-        rawResponse.cancel(true);
     }
 
     /**
      * Block the current thread until the operation finishes. Note that any exception triggered by the
      * callbacks, or cancellation will be rethrown by this method.
      */
-    public void join() {
+    public synchronized void join() {
         rawResponse.join();
     }
 
