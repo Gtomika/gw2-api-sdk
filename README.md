@@ -1,0 +1,3 @@
+# gw2-api-sdk
+
+UNFINISHED PROJECT - IGNORE
